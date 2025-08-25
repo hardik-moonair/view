@@ -107,6 +107,11 @@ const NativeFunctionsTest = () => {
     sendNativeCommand('SHOW_TOAST', { message: 'Hello from Web App!' });
   };
 
+  const testGetContacts = () => {
+    sendNativeCommand('GET_CONTACTS');
+  };
+  
+
   const testUploadFile = () => {
     // Create a simple base64 test file
     const testData = 'SGVsbG8gV29ybGQh'; // "Hello World!" in base64
@@ -244,6 +249,13 @@ const NativeFunctionsTest = () => {
                   >
                     Get Call Logs
                   </button>
+                  <button
+                    onClick={testGetContacts}
+                    className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded text-sm transition-colors"
+                  >
+                    Get Contacts
+                  </button>
+                  
                 </div>
               </div>
 
