@@ -38,8 +38,11 @@ const NativeFunctionsTest = () => {
   //   }
   // }, []);
   // Initialize native bridge + auto device info logging
-useEffect(() => {
-  if (typeof window !== 'undefined') {
+  // Initialize native bridge + auto logging with resume handling
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    // ---- bridge detection (unchanged) ----
     if (window.NativeApp) {
       setConnectionStatus('Connected to Native App');
       addLog('Native bridge detected', 'success');
@@ -51,24 +54,58 @@ useEffect(() => {
       addLog('No native bridge found - running in browser', 'warning');
     }
 
-    // Listen for native responses
+    // ---- native callbacks (unchanged) ----
     window.onNativeResponse = (data) => {
       addLog(`Native Response: ${JSON.stringify(data)}`, 'success');
     };
-
     window.onNativeData = (data) => {
       addLog(`Native Data: ${JSON.stringify(data)}`, 'success');
     };
 
-    // ✅ Keep logging device info every 5s while screen is open
-    const interval = setInterval(() => {
+    // Helper to log both items
+    const logNow = () => {
       sendNativeCommand('GET_DEVICE_INFO');
-    }, 5000); // 5000ms = 5 seconds
+      sendNativeCommand('GET_LOCATION');
+    };
 
-    // cleanup when leaving screen
-    return () => clearInterval(interval);
-  }
-}, []);
+    // 1) Immediately on load
+    logNow();
+
+    // 2) Every 5 seconds while mounted
+    const interval = setInterval(logNow, 5000);
+
+    // 3a) When screen becomes visible again (WebView/tab switched back)
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        addLog('Screen visible: logging device info & location', 'info');
+        logNow();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    // 3b) Also handle focus (some WebViews fire focus reliably)
+    const handleFocus = () => {
+      addLog('Window focused: logging device info & location', 'info');
+      logNow();
+    };
+    window.addEventListener('focus', handleFocus);
+
+    // 3c) OPTIONAL: Native can call this on resume
+    // Android/iOS can invoke: window.onAppResume && window.onAppResume();
+    window.onAppResume = () => {
+      addLog('onAppResume received from native', 'info');
+      logNow();
+    };
+
+    // Cleanup
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('focus', handleFocus);
+      // Optional: unset to avoid stale refs if you remount elsewhere
+      delete window.onAppResume;
+    };
+  }, []);
 
   // Helper function to send native commands
   const sendNativeCommand = (action, params = {}) => {
