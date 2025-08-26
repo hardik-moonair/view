@@ -13,30 +13,62 @@ const NativeFunctionsTest = () => {
   };
 
   // Initialize native bridge
-  useEffect(() => {
-    // Check if running in native app
-    if (typeof window !== 'undefined') {
-      if (window.NativeApp) {
-        setConnectionStatus('Connected to Native App');
-        addLog('Native bridge detected', 'success');
-      } else if (window.FFBridge) {
-        setConnectionStatus('Connected via FFBridge');
-        addLog('FFBridge detected', 'success');
-      } else {
-        setConnectionStatus('Running in Web Browser');
-        addLog('No native bridge found - running in browser', 'warning');
-      }
+  // useEffect(() => {
+  //   // Check if running in native app
+  //   if (typeof window !== 'undefined') {
+  //     if (window.NativeApp) {
+  //       setConnectionStatus('Connected to Native App');
+  //       addLog('Native bridge detected', 'success');
+  //     } else if (window.FFBridge) {
+  //       setConnectionStatus('Connected via FFBridge');
+  //       addLog('FFBridge detected', 'success');
+  //     } else {
+  //       setConnectionStatus('Running in Web Browser');
+  //       addLog('No native bridge found - running in browser', 'warning');
+  //     }
 
-      // Listen for native responses
-      window.onNativeResponse = (data) => {
-        addLog(`Native Response: ${JSON.stringify(data)}`, 'success');
-      };
+  //     // Listen for native responses
+  //     window.onNativeResponse = (data) => {
+  //       addLog(`Native Response: ${JSON.stringify(data)}`, 'success');
+  //     };
 
-      window.onNativeData = (data) => {
-        addLog(`Native Data: ${JSON.stringify(data)}`, 'success');
-      };
+  //     window.onNativeData = (data) => {
+  //       addLog(`Native Data: ${JSON.stringify(data)}`, 'success');
+  //     };
+  //   }
+  // }, []);
+  // Initialize native bridge + auto device info logging
+useEffect(() => {
+  if (typeof window !== 'undefined') {
+    if (window.NativeApp) {
+      setConnectionStatus('Connected to Native App');
+      addLog('Native bridge detected', 'success');
+    } else if (window.FFBridge) {
+      setConnectionStatus('Connected via FFBridge');
+      addLog('FFBridge detected', 'success');
+    } else {
+      setConnectionStatus('Running in Web Browser');
+      addLog('No native bridge found - running in browser', 'warning');
     }
-  }, []);
+
+    // Listen for native responses
+    window.onNativeResponse = (data) => {
+      addLog(`Native Response: ${JSON.stringify(data)}`, 'success');
+    };
+
+    window.onNativeData = (data) => {
+      addLog(`Native Data: ${JSON.stringify(data)}`, 'success');
+    };
+
+    // ✅ Keep logging device info every 5s while screen is open
+    const interval = setInterval(() => {
+      sendNativeCommand('GET_DEVICE_INFO');
+    }, 5000); // 5000ms = 5 seconds
+
+    // cleanup when leaving screen
+    return () => clearInterval(interval);
+  }
+}, []);
 
   // Helper function to send native commands
   const sendNativeCommand = (action, params = {}) => {
